@@ -9,13 +9,14 @@ use crate::{interaction::InputState, selection_indicator::Insets, theme::Theme};
 pub mod animated_triangle;
 pub mod border;
 pub mod line;
-pub mod rectangle;
+pub mod rounded_rectangle;
 pub mod triangle;
 
 // Re-export the styles themselves to make them easier to use.
 pub use animated_triangle::AnimatedTriangle;
 pub use border::Border;
 pub use line::Line;
+pub use rounded_rectangle::RoundedRectangle;
 pub use triangle::Triangle;
 
 pub fn interpolate(value: u32, x_min: u32, x_max: u32, y_min: u32, y_max: u32) -> u32 {
