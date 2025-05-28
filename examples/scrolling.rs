@@ -6,6 +6,8 @@ use embedded_graphics_simulator::{
 };
 use embedded_menu::{interaction::simulator::Simulator, Menu, MenuStyle, SelectValue};
 
+use u8g2_fonts::{fonts::u8g2_font_boutique_bitmap_9x9_t_gb2312, U8g2TextStyle};
+
 #[derive(Copy, Clone, PartialEq, SelectValue)]
 pub enum TestEnum {
     A,
@@ -19,19 +21,25 @@ fn main() -> Result<(), core::convert::Infallible> {
             page_size: 5,
             esc_value: (),
         })
+        .with_font(U8g2TextStyle::new(
+            u8g2_font_boutique_bitmap_9x9_t_gb2312,
+            BinaryColor::On,
+        ))
+        .with_title_font(U8g2TextStyle::new(
+            u8g2_font_boutique_bitmap_9x9_t_gb2312,
+            BinaryColor::On,
+        ))
         .with_animated_selection_indicator(10);
 
-    let mut menu = Menu::with_style("Menu", style)
-        .add_item("Foo", ">", |_| ())
-        .add_item("Check this", false, |_| ())
-        .add_item("Check this", false, |_| ())
-        .add_item("Check this too", TestEnum::A, |_| ())
-        .add_item("Check this too", TestEnum::A, |_| ())
-        .add_item("Check this", true, |_| ())
-        .add_item("Check this too", true, |_| ())
-        .add_item("Check this too", TestEnum::A, |_| ())
-        .add_item("Check this", false, |_| ())
-        .add_item("Check this too", true, |_| ())
+    let mut menu = Menu::with_style("菜单<Menu>", style)
+        .add_item("1.监控", ">", |_| ())
+        .add_item("Monitor", false, |_| ())
+        .add_item("2.设置", false, |_| ())
+        .add_item("Setting", true, |_| ())
+        .add_item("3.帮助", false, |_| ())
+        .add_item("Help", true, |_| ())
+        .add_item("About", TestEnum::A, |_| ())
+        .add_item("Exit", false, |_| ())
         .add_item("Foo", "<-", |_| ())
         .add_item("Check this", false, |_| ())
         .add_item("Check this too", TestEnum::A, |_| ())

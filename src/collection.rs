@@ -1,14 +1,18 @@
+extern crate alloc;
+
 use core::marker::PhantomData;
 
 use embedded_graphics::{
-    mono_font::MonoTextStyle,
     pixelcolor::BinaryColor,
-    prelude::{DrawTarget, Point, Size},
+    prelude::{Dimensions, DrawTarget, Point, Size},
     primitives::Rectangle,
+    Drawable,
 };
 use embedded_layout::{object_chain::ChainElement, prelude::*, view_group::ViewGroup};
 
 use crate::items::{Marker, MenuListItem};
+use alloc::vec::Vec;
+use u8g2_fonts::{fonts::u8g2_font_6x10_tf, U8g2TextStyle};
 
 /// Menu-related extensions for object chain elements
 pub trait MenuItemCollection<R> {
@@ -20,7 +24,7 @@ pub trait MenuItemCollection<R> {
     fn count(&self) -> usize;
     fn draw_styled<D>(
         &self,
-        text_style: &MonoTextStyle<'static, BinaryColor>,
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where
@@ -58,7 +62,7 @@ where
 
     fn draw_styled<D>(
         &self,
-        text_style: &MonoTextStyle<'static, BinaryColor>,
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where
@@ -127,7 +131,7 @@ where
 
     fn draw_styled<D>(
         &self,
-        text_style: &MonoTextStyle<'static, BinaryColor>,
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where
@@ -138,33 +142,6 @@ where
         }
 
         Ok(())
-    }
-}
-
-impl<C, I, R> View for MenuItems<C, I, R>
-where
-    C: AsRef<[I]> + AsMut<[I]>,
-    I: MenuListItem<R>,
-{
-    fn translate_impl(&mut self, by: Point) {
-        self.position += by;
-        for view in self.items.as_mut().iter_mut() {
-            view.translate_impl(by);
-        }
-    }
-
-    fn bounds(&self) -> Rectangle {
-        let mut size = Size::zero();
-
-        for view in self.items.as_ref().iter() {
-            let view_size = view.bounds().size;
-            size = Size::new(
-                size.width.max(view_size.width),
-                size.height + view_size.height,
-            );
-        }
-
-        Rectangle::new(self.position, size)
     }
 }
 
@@ -212,7 +189,7 @@ where
 
     fn draw_styled<D>(
         &self,
-        text_style: &MonoTextStyle<'static, BinaryColor>,
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where
@@ -269,7 +246,7 @@ where
 
     fn draw_styled<D>(
         &self,
-        text_style: &MonoTextStyle<'static, BinaryColor>,
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where
@@ -279,5 +256,105 @@ where
         self.object.draw_styled(text_style, display)?;
 
         Ok(())
+    }
+}
+
+pub struct MenuCollection<T, R> {
+    items: Vec<T>,
+    _phantom: core::marker::PhantomData<R>,
+}
+
+impl<T, R> MenuCollection<T, R>
+where
+    T: MenuListItem<R> + View,
+{
+    pub fn new() -> Self {
+        Self {
+            items: Vec::new(),
+            _phantom: core::marker::PhantomData,
+        }
+    }
+
+    pub fn with_items(items: Vec<T>) -> Self {
+        Self {
+            items,
+            _phantom: core::marker::PhantomData,
+        }
+    }
+
+    pub fn draw_styled<D>(
+        &self,
+        text_style: &U8g2TextStyle<BinaryColor>,
+        display: &mut D,
+    ) -> Result<(), D::Error>
+    where
+        D: DrawTarget<Color = BinaryColor>,
+    {
+        self.items
+            .iter()
+            .try_for_each(|item| item.draw_styled(text_style, display))
+    }
+}
+
+impl<T, R> Drawable for MenuCollection<T, R>
+where
+    T: MenuListItem<R> + View,
+{
+    type Color = BinaryColor;
+    type Output = ();
+
+    fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
+    where
+        D: DrawTarget<Color = Self::Color>,
+    {
+        let text_style = U8g2TextStyle::new(u8g2_font_6x10_tf, BinaryColor::On);
+
+        self.draw_styled(&text_style, display)
+    }
+}
+
+impl<C, I, R> Dimensions for MenuItems<C, I, R>
+where
+    C: AsRef<[I]> + AsMut<[I]>,
+    I: MenuListItem<R>,
+{
+    fn bounding_box(&self) -> Rectangle {
+        self.bounds()
+    }
+}
+
+impl<C, I, R> View for MenuItems<C, I, R>
+where
+    C: AsRef<[I]> + AsMut<[I]>,
+    I: MenuListItem<R>,
+{
+    fn translate_impl(&mut self, by: Point) {
+        self.position += by;
+        for view in self.items.as_mut().iter_mut() {
+            view.translate_impl(by);
+        }
+    }
+
+    fn bounds(&self) -> Rectangle {
+        let mut min_x = i32::MAX;
+        let mut min_y = i32::MAX;
+        let mut max_x = i32::MIN;
+        let mut max_y = i32::MIN;
+        let mut any = false;
+        for view in self.items.as_ref().iter() {
+            let b = view.bounds();
+            let tl = b.top_left;
+            let br = b.top_left + b.size;
+            min_x = min_x.min(tl.x);
+            min_y = min_y.min(tl.y);
+            max_x = max_x.max(br.x);
+            max_y = max_y.max(br.y);
+            any = true;
+        }
+        if any {
+            Rectangle::with_corners(Point::new(min_x, min_y), Point::new(max_x, max_y))
+        } else {
+            Rectangle::new(self.position, Size::zero())
+        }
     }
 }

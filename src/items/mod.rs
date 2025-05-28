@@ -4,7 +4,6 @@ pub use menu_item::MenuItem;
 
 use embedded_graphics::{
     draw_target::DrawTarget,
-    mono_font::MonoTextStyle,
     pixelcolor::BinaryColor,
     prelude::{Point, Size},
     primitives::Rectangle,
@@ -12,7 +11,12 @@ use embedded_graphics::{
     Drawable,
 };
 use embedded_layout::prelude::*;
-use embedded_text::{alignment::HorizontalAlignment, style::TextBoxStyleBuilder, TextBox};
+use embedded_text::{
+    alignment::HorizontalAlignment,
+    style::{HeightMode, TextBoxStyleBuilder},
+    TextBox,
+};
+use u8g2_fonts::U8g2TextStyle;
 
 /// Marker trait necessary to avoid a "conflicting implementations" error.
 pub trait Marker {}
@@ -23,7 +27,7 @@ pub trait MenuListItem<R>: Marker + View {
 
     fn interact(&mut self) -> R;
 
-    fn set_style(&mut self, text_style: &MonoTextStyle<'_, BinaryColor>);
+    fn set_style(&mut self, text_style: &U8g2TextStyle<BinaryColor>);
 
     /// Returns whether the list item is selectable.
     ///
@@ -35,7 +39,7 @@ pub trait MenuListItem<R>: Marker + View {
 
     fn draw_styled<D>(
         &self,
-        text_style: &MonoTextStyle<'static, BinaryColor>,
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where
@@ -49,7 +53,7 @@ pub struct MenuLine {
 }
 
 impl MenuLine {
-    pub fn new(longest_value: &str, text_style: &MonoTextStyle<'_, BinaryColor>) -> Self {
+    pub fn new(longest_value: &str, text_style: &U8g2TextStyle<BinaryColor>) -> Self {
         let value_width = text_style
             .measure_string(longest_value, Point::zero(), Baseline::Top)
             .bounding_box
@@ -59,7 +63,7 @@ impl MenuLine {
         MenuLine {
             bounds: Rectangle::new(
                 Point::zero(),
-                Size::new(1, text_style.font.character_size.height - 1),
+                Size::new(1, text_style.line_height() - 1),
             ),
             value_width,
         }
@@ -76,7 +80,7 @@ impl MenuLine {
         &self,
         title: &str,
         value_text: &str,
-        text_style: &MonoTextStyle<'static, BinaryColor>, // TODO: allow non-mono fonts
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where
@@ -96,15 +100,25 @@ impl MenuLine {
         TextBox::with_textbox_style(
             value_text,
             text_bounds,
-            *text_style,
+            text_style.clone(),
             TextBoxStyleBuilder::new()
                 .alignment(HorizontalAlignment::Right)
+                .height_mode(HeightMode::FitToText)
                 .build(),
         )
         .draw(display)?;
 
         text_bounds.size.width -= self.value_width;
-        TextBox::new(title, text_bounds, *text_style).draw(display)?;
+        TextBox::with_textbox_style(
+            title,
+            text_bounds,
+            text_style.clone(),
+            TextBoxStyleBuilder::new()
+                .alignment(HorizontalAlignment::Left)
+                .height_mode(HeightMode::FitToText)
+                .build(),
+        )
+        .draw(display)?;
 
         Ok(())
     }

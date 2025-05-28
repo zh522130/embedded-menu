@@ -1,12 +1,9 @@
+use crate::items::{Marker, MenuLine, MenuListItem};
 use embedded_graphics::{
-    mono_font::MonoTextStyle,
-    pixelcolor::BinaryColor,
-    prelude::{DrawTarget, Point},
-    primitives::Rectangle,
+    draw_target::DrawTarget, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
 };
 use embedded_layout::View;
-
-use crate::items::{Marker, MenuLine, MenuListItem};
+use u8g2_fonts::U8g2TextStyle;
 
 pub trait SelectValue: Sized + Clone + PartialEq {
     /// Transforms the value on interaction
@@ -119,7 +116,7 @@ where
         SELECTABLE
     }
 
-    fn set_style(&mut self, text_style: &MonoTextStyle<'_, BinaryColor>) {
+    fn set_style(&mut self, text_style: &U8g2TextStyle<BinaryColor>) {
         let mut current = self.value.clone();
         let mut longest = self.value.clone();
 
@@ -142,7 +139,7 @@ where
 
     fn draw_styled<D>(
         &self,
-        text_style: &MonoTextStyle<'static, BinaryColor>,
+        text_style: &U8g2TextStyle<BinaryColor>,
         display: &mut D,
     ) -> Result<(), D::Error>
     where

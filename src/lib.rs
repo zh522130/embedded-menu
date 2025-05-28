@@ -27,7 +27,6 @@ use core::marker::PhantomData;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{AnchorPoint, AnchorX, AnchorY},
-    mono_font::{ascii::FONT_6X10, MonoFont, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::{Dimensions, DrawTargetExt, Point},
     primitives::{Line, Primitive, PrimitiveStyle, Rectangle},
@@ -40,6 +39,7 @@ use embedded_text::{
 };
 
 pub use embedded_menu_macros::SelectValue;
+use u8g2_fonts::{fonts::u8g2_font_6x10_tf, U8g2TextStyle};
 
 #[derive(Copy, Clone, Debug)]
 pub enum DisplayScrollbar {
@@ -48,12 +48,15 @@ pub enum DisplayScrollbar {
     Auto,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub struct MenuStyle<S, IT, P, R, T> {
+#[derive(Debug, Clone)]
+pub struct MenuStyle<S, IT, P, R, T>
+where
+    T: Theme,
+{
     pub(crate) theme: T,
     pub(crate) scrollbar: DisplayScrollbar,
-    pub(crate) font: &'static MonoFont<'static>,
-    pub(crate) title_font: &'static MonoFont<'static>,
+    pub(crate) font: U8g2TextStyle<BinaryColor>,
+    pub(crate) title_font: U8g2TextStyle<T::Color>,
     pub(crate) input_adapter: IT,
     pub(crate) indicator: Indicator<P, S>,
     _marker: PhantomData<R>,
@@ -69,12 +72,12 @@ impl<T, R> MenuStyle<LineIndicator, Programmed, StaticPosition, R, T>
 where
     T: Theme,
 {
-    pub const fn new(theme: T) -> Self {
+    pub fn new(theme: T) -> Self {
         Self {
             theme,
             scrollbar: DisplayScrollbar::Auto,
-            font: &FONT_6X10,
-            title_font: &FONT_6X10,
+            font: U8g2TextStyle::new(u8g2_font_6x10_tf, BinaryColor::On),
+            title_font: U8g2TextStyle::new(u8g2_font_6x10_tf, theme.text_color()),
             input_adapter: Programmed,
             indicator: Indicator {
                 style: LineIndicator,
@@ -92,11 +95,11 @@ where
     P: SelectionIndicatorController,
     T: Theme,
 {
-    pub const fn with_font(self, font: &'static MonoFont<'static>) -> Self {
+    pub fn with_font(self, font: U8g2TextStyle<BinaryColor>) -> Self {
         Self { font, ..self }
     }
 
-    pub const fn with_title_font(self, title_font: &'static MonoFont<'static>) -> Self {
+    pub fn with_title_font(self, title_font: U8g2TextStyle<T::Color>) -> Self {
         Self { title_font, ..self }
     }
 
@@ -158,12 +161,12 @@ where
         }
     }
 
-    pub fn text_style(&self) -> MonoTextStyle<'static, BinaryColor> {
-        MonoTextStyle::new(self.font, BinaryColor::On)
+    pub fn text_style(&self) -> U8g2TextStyle<BinaryColor> {
+        self.font.clone()
     }
 
-    pub fn title_style(&self) -> MonoTextStyle<'static, T::Color> {
-        MonoTextStyle::new(self.title_font, self.theme.text_color())
+    pub fn title_style(&self) -> U8g2TextStyle<T::Color> {
+        self.title_font.clone()
     }
 }
 
@@ -276,7 +279,7 @@ where
     where
         MenuStyle<S, Programmed, StaticPosition, R, C>: Default,
     {
-        Self::with_style(title, MenuStyle::default())
+        MenuBuilder::new(title, MenuStyle::default())
     }
 }
 
@@ -350,7 +353,6 @@ where
 impl<T, IT, VG, R, P, S, C> Menu<T, IT, VG, R, P, S, C>
 where
     T: AsRef<str>,
-    R: Copy,
     IT: InputAdapterSource<R>,
     VG: MenuItemCollection<R>,
     C: Theme,
