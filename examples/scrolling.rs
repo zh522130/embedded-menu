@@ -29,6 +29,7 @@ fn main() -> Result<(), core::convert::Infallible> {
             u8g2_font_boutique_bitmap_9x9_t_gb2312,
             BinaryColor::On,
         ))
+        .with_selection_indicator(embedded_menu::selection_indicator::style::rectangle::Rectangle)
         .with_animated_selection_indicator(10);
 
     let mut menu = Menu::with_style("菜单<Menu>", style)

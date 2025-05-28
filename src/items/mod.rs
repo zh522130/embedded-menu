@@ -61,10 +61,7 @@ impl MenuLine {
             .width;
 
         MenuLine {
-            bounds: Rectangle::new(
-                Point::zero(),
-                Size::new(1, text_style.line_height() - 1),
-            ),
+            bounds: Rectangle::new(Point::zero(), Size::new(1, text_style.line_height() - 1)),
             value_width,
         }
     }

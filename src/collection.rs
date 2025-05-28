@@ -264,6 +264,15 @@ pub struct MenuCollection<T, R> {
     _phantom: core::marker::PhantomData<R>,
 }
 
+impl<T, R> Default for MenuCollection<T, R>
+where
+    T: MenuListItem<R> + View,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T, R> MenuCollection<T, R>
 where
     T: MenuListItem<R> + View,

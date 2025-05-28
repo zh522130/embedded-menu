@@ -14,6 +14,24 @@ use embedded_layout::{
     view_group::{EmptyViewGroup, ViewGroup},
 };
 
+type MenuBuilderChainSection<T, IT, T2, R, P, S, C> =
+    MenuBuilder<T, IT, Chain<MenuItem<T2, R, (), false>>, R, P, S, C>;
+
+type MenuBuilderChainItem<T, IT, T2, R, V, P, S, C> =
+    MenuBuilder<T, IT, Chain<MenuItem<T2, R, V, true>>, R, P, S, C>;
+
+type MenuBuilderChainItems<T, IT, IC, I, R, P, S, C> =
+    MenuBuilder<T, IT, Chain<MenuItems<IC, I, R>>, R, P, S, C>;
+
+type MenuBuilderLinkSection<T, IT, T2, R, CE, P, S, C> =
+    MenuBuilder<T, IT, Link<MenuItem<T2, R, (), false>, CE>, R, P, S, C>;
+
+type MenuBuilderLinkItem<T, IT, T2, R, V, CE, P, S, C> =
+    MenuBuilder<T, IT, Link<MenuItem<T2, R, V, true>, CE>, R, P, S, C>;
+
+type MenuBuilderLinkItems<T, IT, IC, I, R, CE, P, S, C> =
+    MenuBuilder<T, IT, Link<MenuItems<IC, I, R>, CE>, R, P, S, C>;
+
 pub struct MenuBuilder<T, IT, LL, R, P, S, C>
 where
     T: AsRef<str>,
@@ -57,7 +75,7 @@ where
     pub fn add_section_title<T2: AsRef<str>>(
         self,
         title: T2,
-    ) -> MenuBuilder<T, IT, Chain<MenuItem<T2, R, (), false>>, R, P, S, C> {
+    ) -> MenuBuilderChainSection<T, IT, T2, R, P, S, C> {
         self.add_menu_item(
             MenuItem::new(title, ())
                 .with_value_converter(|_| unreachable!())
@@ -75,7 +93,7 @@ where
         title: T2,
         value: V,
         converter: fn(V) -> R,
-    ) -> MenuBuilder<T, IT, Chain<MenuItem<T2, R, V, true>>, R, P, S, C> {
+    ) -> MenuBuilderChainItem<T, IT, T2, R, V, P, S, C> {
         self.add_menu_item(MenuItem::new(title, value).with_value_converter(converter))
     }
 
@@ -97,7 +115,7 @@ where
     pub fn add_menu_items<I, IC>(
         self,
         mut items: IC,
-    ) -> MenuBuilder<T, IT, Chain<MenuItems<IC, I, R>>, R, P, S, C>
+    ) -> MenuBuilderChainItems<T, IT, IC, I, R, P, S, C>
     where
         I: MenuListItem<R>,
         IC: AsRef<[I]> + AsMut<[I]>,
@@ -128,7 +146,7 @@ where
     pub fn add_section_title<T2: AsRef<str>>(
         self,
         title: T2,
-    ) -> MenuBuilder<T, IT, Link<MenuItem<T2, R, (), false>, CE>, R, P, S, C> {
+    ) -> MenuBuilderLinkSection<T, IT, T2, R, CE, P, S, C> {
         self.add_menu_item(
             MenuItem::new(title, ())
                 .with_value_converter(|_| unreachable!())
@@ -146,7 +164,7 @@ where
         title: T2,
         value: V,
         converter: fn(V) -> R,
-    ) -> MenuBuilder<T, IT, Link<MenuItem<T2, R, V, true>, CE>, R, P, S, C> {
+    ) -> MenuBuilderLinkItem<T, IT, T2, R, V, CE, P, S, C> {
         self.add_menu_item(MenuItem::new(title, value).with_value_converter(converter))
     }
 
@@ -171,7 +189,7 @@ where
     pub fn add_menu_items<I, IC>(
         self,
         mut items: IC,
-    ) -> MenuBuilder<T, IT, Link<MenuItems<IC, I, R>, CE>, R, P, S, C>
+    ) -> MenuBuilderLinkItems<T, IT, IC, I, R, CE, P, S, C>
     where
         I: MenuListItem<R>,
         IC: AsRef<[I]> + AsMut<[I]>,

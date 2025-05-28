@@ -18,8 +18,8 @@ use crate::{
     },
     selection_indicator::{
         style::{line::Line as LineIndicator, IndicatorStyle},
-        AnimatedPosition, Indicator, SelectionIndicatorController, State as IndicatorState,
-        StaticPosition,
+        AnimatedPosition, DrawContext, Indicator, SelectionIndicatorController,
+        State as IndicatorState, StaticPosition,
     },
     theme::Theme,
 };
@@ -519,15 +519,17 @@ where
                 .size()
                 .height as i32;
 
-        self.style.indicator.draw(
-            selected_menuitem_height,
-            self.top_offset(),
-            self.state.last_input_state,
-            display.cropped(&menu_display_area),
-            &self.items,
-            &self.style,
-            &self.state,
-        )?;
+        let ctx = DrawContext {
+            selected_height: selected_menuitem_height,
+            selected_offset: self.top_offset(),
+            input_state: self.state.last_input_state,
+            display: display.cropped(&menu_display_area),
+            items: &self.items,
+            style: &self.style,
+            menu_state: &self.state,
+        };
+
+        self.style.indicator.draw(ctx)?;
 
         Ok(())
     }

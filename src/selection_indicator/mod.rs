@@ -137,6 +137,24 @@ pub(crate) struct Indicator<P, S> {
     pub style: S,
 }
 
+pub struct DrawContext<'a, R, D, IT, C, P, S, M>
+where
+    D: DrawTarget<Color = C::Color>,
+    IT: InputAdapterSource<R>,
+    P: SelectionIndicatorController,
+    C: Theme,
+    S: IndicatorStyle,
+    M: MenuItemCollection<R>,
+{
+    pub selected_height: i32,
+    pub selected_offset: i32,
+    pub input_state: InputState,
+    pub display: D,
+    pub items: &'a M,
+    pub style: &'a MenuStyle<S, IT, P, R, C>,
+    pub menu_state: &'a MenuState<IT::InputAdapter, P, S>,
+}
+
 impl<P, S> Indicator<P, S>
 where
     P: SelectionIndicatorController,
@@ -165,15 +183,9 @@ where
         menuitem_height + indicator_insets.top + indicator_insets.bottom
     }
 
-    pub fn draw<R, D, IT, C>(
+    pub fn draw<R, D, IT, C, M>(
         &self,
-        selected_height: i32,
-        selected_offset: i32,
-        input_state: InputState,
-        mut display: D,
-        items: &impl MenuItemCollection<R>,
-        style: &MenuStyle<S, IT, P, R, C>,
-        menu_state: &MenuState<IT::InputAdapter, P, S>,
+        mut ctx: DrawContext<R, D, IT, C, P, S, M>,
     ) -> Result<(), D::Error>
     where
         D: DrawTarget<Color = C::Color>,
@@ -181,11 +193,10 @@ where
         P: SelectionIndicatorController,
         C: Theme,
         S: IndicatorStyle,
+        M: MenuItemCollection<R>,
     {
-        let display_size = display.bounding_box().size;
+        let display_size = ctx.display.bounding_box().size;
 
-        // We treat the horizontal insets as padding, but the vertical insets only as an expansion
-        // for the selection indicator. Menu items are placed tightly, ignoring the vertical insets.
         let Insets {
             left: padding_left,
             top: padding_top,
@@ -193,28 +204,28 @@ where
             bottom: padding_bottom,
         } = self
             .style
-            .padding(&menu_state.indicator_state.state, selected_height);
+            .padding(&ctx.menu_state.indicator_state.state, ctx.selected_height);
 
         // Draw the selection indicator
-        let selected_item_height = (selected_height + padding_top + padding_bottom) as u32;
+        let selected_item_height = (ctx.selected_height + padding_top + padding_bottom) as u32;
         let selected_item_area = Rectangle::new(
-            Point::new(0, selected_offset),
+            Point::new(0, ctx.selected_offset),
             Size::new(display_size.width, selected_item_height),
         );
 
         let selection_area = self.style.draw(
-            &menu_state.indicator_state.state,
-            input_state,
-            &style.theme,
-            &mut display.cropped(&selected_item_area),
+            &ctx.menu_state.indicator_state.state,
+            ctx.input_state,
+            &ctx.style.theme,
+            &mut ctx.display.cropped(&selected_item_area),
         )?;
 
         // Translate inverting area to its position
         let mapping_area = selection_area.translate(selected_item_area.top_left);
-        let mut inverting = display.map_colors(
+        let mut inverting = ctx.display.map_colors(
             &mapping_area,
-            style.theme.text_color(),
-            style.theme.selected_text_color(),
+            ctx.style.theme.text_color(),
+            ctx.style.theme.selected_text_color(),
         );
 
         // Draw the menu content
@@ -224,11 +235,11 @@ where
             Size::new(content_width, display_size.height),
         );
 
-        items.draw_styled(
-            &style.text_style(),
+        ctx.items.draw_styled(
+            &ctx.style.text_style(),
             &mut inverting
                 .clipped(&content_area)
-                .translated(content_area.top_left - Point::new(0, menu_state.list_offset)),
+                .translated(content_area.top_left - Point::new(0, ctx.menu_state.list_offset)),
         )
     }
 }
