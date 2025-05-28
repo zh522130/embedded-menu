@@ -8,15 +8,11 @@ use embedded_graphics::{
     prelude::{Point, Size},
     primitives::Rectangle,
     text::{renderer::TextRenderer, Baseline},
-    Drawable,
 };
 use embedded_layout::prelude::*;
-use embedded_text::{
-    alignment::HorizontalAlignment,
-    style::{HeightMode, TextBoxStyleBuilder},
-    TextBox,
-};
 use u8g2_fonts::U8g2TextStyle;
+
+use crate::is_cjk_font;
 
 /// Marker trait necessary to avoid a "conflicting implementations" error.
 pub trait Marker {}
@@ -50,19 +46,15 @@ pub trait MenuListItem<R>: Marker + View {
 pub struct MenuLine {
     bounds: Rectangle,
     value_width: u32,
+    is_cjk_font: bool,
 }
 
 impl MenuLine {
-    pub fn new(longest_value: &str, text_style: &U8g2TextStyle<BinaryColor>) -> Self {
-        let value_width = text_style
-            .measure_string(longest_value, Point::zero(), Baseline::Top)
-            .bounding_box
-            .size
-            .width;
-
+    pub fn new(value_width: u32, text_style: &U8g2TextStyle<BinaryColor>) -> Self {
         MenuLine {
             bounds: Rectangle::new(Point::zero(), Size::new(1, text_style.line_height() - 1)),
             value_width,
+            is_cjk_font: is_cjk_font(text_style),
         }
     }
 
@@ -70,6 +62,7 @@ impl MenuLine {
         MenuLine {
             bounds: Rectangle::new(Point::zero(), Size::new(1, 0)),
             value_width: 0,
+            is_cjk_font: false,
         }
     }
 
@@ -88,34 +81,31 @@ impl MenuLine {
         if self.bounds.intersection(&display_area).size.height == 0 {
             return Ok(());
         }
-
-        let mut text_bounds = Rectangle::new(
-            self.bounds.top_left,
-            Size::new(display_area.size.width, self.bounds.size.height + 1),
-        );
-
-        TextBox::with_textbox_style(
+        let mut text_bounds = if self.is_cjk_font {
+            Rectangle::new(
+                Point::new(self.bounds.top_left.x, self.bounds.top_left.y + 1),
+                Size::new(display_area.size.width - 1, self.bounds.size.height + 1),
+            )
+        } else {
+            Rectangle::new(
+                Point::new(self.bounds.top_left.x, self.bounds.top_left.y),
+                Size::new(display_area.size.width, self.bounds.size.height + 1),
+            )
+        };
+        // draw right value text
+        text_style.draw_string(
             value_text,
-            text_bounds,
-            text_style.clone(),
-            TextBoxStyleBuilder::new()
-                .alignment(HorizontalAlignment::Right)
-                .height_mode(HeightMode::FitToText)
-                .build(),
-        )
-        .draw(display)?;
+            Point::new(
+                text_bounds.bottom_right().unwrap_or_default().x - self.value_width as i32,
+                text_bounds.top_left.y,
+            ),
+            Baseline::Top,
+            display,
+        )?;
 
+        // draw left title text
         text_bounds.size.width -= self.value_width;
-        TextBox::with_textbox_style(
-            title,
-            text_bounds,
-            text_style.clone(),
-            TextBoxStyleBuilder::new()
-                .alignment(HorizontalAlignment::Left)
-                .height_mode(HeightMode::FitToText)
-                .build(),
-        )
-        .draw(display)?;
+        text_style.draw_string(title, text_bounds.top_left, Baseline::Top, display)?;
 
         Ok(())
     }

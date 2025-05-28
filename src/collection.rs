@@ -6,13 +6,11 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::{Dimensions, DrawTarget, Point, Size},
     primitives::Rectangle,
-    Drawable,
 };
 use embedded_layout::{object_chain::ChainElement, prelude::*, view_group::ViewGroup};
 
 use crate::items::{Marker, MenuListItem};
-use alloc::vec::Vec;
-use u8g2_fonts::{fonts::u8g2_font_6x10_tf, U8g2TextStyle};
+use u8g2_fonts::U8g2TextStyle;
 
 /// Menu-related extensions for object chain elements
 pub trait MenuItemCollection<R> {
@@ -256,69 +254,6 @@ where
         self.object.draw_styled(text_style, display)?;
 
         Ok(())
-    }
-}
-
-pub struct MenuCollection<T, R> {
-    items: Vec<T>,
-    _phantom: core::marker::PhantomData<R>,
-}
-
-impl<T, R> Default for MenuCollection<T, R>
-where
-    T: MenuListItem<R> + View,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T, R> MenuCollection<T, R>
-where
-    T: MenuListItem<R> + View,
-{
-    pub fn new() -> Self {
-        Self {
-            items: Vec::new(),
-            _phantom: core::marker::PhantomData,
-        }
-    }
-
-    pub fn with_items(items: Vec<T>) -> Self {
-        Self {
-            items,
-            _phantom: core::marker::PhantomData,
-        }
-    }
-
-    pub fn draw_styled<D>(
-        &self,
-        text_style: &U8g2TextStyle<BinaryColor>,
-        display: &mut D,
-    ) -> Result<(), D::Error>
-    where
-        D: DrawTarget<Color = BinaryColor>,
-    {
-        self.items
-            .iter()
-            .try_for_each(|item| item.draw_styled(text_style, display))
-    }
-}
-
-impl<T, R> Drawable for MenuCollection<T, R>
-where
-    T: MenuListItem<R> + View,
-{
-    type Color = BinaryColor;
-    type Output = ();
-
-    fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
-    where
-        D: DrawTarget<Color = Self::Color>,
-    {
-        let text_style = U8g2TextStyle::new(u8g2_font_6x10_tf, BinaryColor::On);
-
-        self.draw_styled(&text_style, display)
     }
 }
 

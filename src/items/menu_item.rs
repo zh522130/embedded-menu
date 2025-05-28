@@ -1,6 +1,10 @@
 use crate::items::{Marker, MenuLine, MenuListItem};
 use embedded_graphics::{
-    draw_target::DrawTarget, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+    draw_target::DrawTarget,
+    pixelcolor::BinaryColor,
+    prelude::*,
+    primitives::Rectangle,
+    text::{renderer::TextRenderer, Baseline},
 };
 use embedded_layout::View;
 use u8g2_fonts::U8g2TextStyle;
@@ -22,8 +26,8 @@ impl SelectValue for bool {
         match *self {
             // true => "O",
             // false => "O\r+\r#", // this only works for certain small fonts, unfortunately
-            false => "[ ]",
-            true => "[X]",
+            false => "[N]",
+            true => "[Y]",
         }
     }
 }
@@ -118,9 +122,8 @@ where
 
     fn set_style(&mut self, text_style: &U8g2TextStyle<BinaryColor>) {
         let mut current = self.value.clone();
-        let mut longest = self.value.clone();
 
-        let mut longest_len = longest.marker().len();
+        let mut value_width_max = caculate_text_width(current.marker(), text_style);
 
         loop {
             current.next();
@@ -128,13 +131,12 @@ where
                 break;
             }
 
-            if current.marker().len() > longest_len {
-                longest = current.clone();
-                longest_len = longest.marker().len();
+            if caculate_text_width(current.marker(), text_style) > value_width_max {
+                value_width_max = caculate_text_width(current.marker(), text_style);
             }
         }
 
-        self.line = MenuLine::new(longest.marker(), text_style);
+        self.line = MenuLine::new(value_width_max, text_style);
     }
 
     fn draw_styled<D>(
@@ -166,6 +168,14 @@ where
     fn bounds(&self) -> Rectangle {
         self.line.bounds()
     }
+}
+
+fn caculate_text_width(text: &str, text_style: &U8g2TextStyle<BinaryColor>) -> u32 {
+    text_style
+        .measure_string(text, Point::zero(), Baseline::Top)
+        .bounding_box
+        .size
+        .width
 }
 
 #[cfg(test)]

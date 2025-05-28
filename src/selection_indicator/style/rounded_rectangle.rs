@@ -44,9 +44,9 @@ impl RoundedRectangle {
         Self {
             corner_radius,
             padding_left: 2,
-            padding_top: 1,
-            padding_right: 2,
-            padding_bottom: -1,
+            padding_top: 0,
+            padding_right: 1,
+            padding_bottom: 0,
         }
     }
 

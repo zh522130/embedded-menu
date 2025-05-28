@@ -27,19 +27,16 @@ use core::marker::PhantomData;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{AnchorPoint, AnchorX, AnchorY},
-    pixelcolor::BinaryColor,
-    prelude::{Dimensions, DrawTargetExt, Point},
+    pixelcolor::{BinaryColor, PixelColor},
+    prelude::{Dimensions, DrawTargetExt, Point, Size},
     primitives::{Line, Primitive, PrimitiveStyle, Rectangle},
+    text::{renderer::TextRenderer, Baseline},
     Drawable,
 };
 use embedded_layout::{layout::linear::LinearLayout, prelude::*, view_group::ViewGroup};
-use embedded_text::{
-    style::{HeightMode, TextBoxStyle},
-    TextBox,
-};
 
 pub use embedded_menu_macros::SelectValue;
-use u8g2_fonts::{fonts::u8g2_font_6x10_tf, U8g2TextStyle};
+use u8g2_fonts::{fonts::u8g2_font_boutique_bitmap_9x9_t_gb2312, U8g2TextStyle};
 
 #[derive(Copy, Clone, Debug)]
 pub enum DisplayScrollbar {
@@ -76,8 +73,11 @@ where
         Self {
             theme,
             scrollbar: DisplayScrollbar::Auto,
-            font: U8g2TextStyle::new(u8g2_font_6x10_tf, BinaryColor::On),
-            title_font: U8g2TextStyle::new(u8g2_font_6x10_tf, theme.text_color()),
+            font: U8g2TextStyle::new(u8g2_font_boutique_bitmap_9x9_t_gb2312, BinaryColor::On),
+            title_font: U8g2TextStyle::new(
+                u8g2_font_boutique_bitmap_9x9_t_gb2312,
+                theme.text_color(),
+            ),
             input_adapter: Programmed,
             indicator: Indicator {
                 style: LineIndicator,
@@ -388,12 +388,20 @@ where
         let text_style = self.style.title_style();
         let thin_stroke = PrimitiveStyle::with_stroke(self.style.theme.text_color(), 1);
         let header = LinearLayout::vertical(
-            Chain::new(TextBox::with_textbox_style(
-                title,
-                display_area,
-                text_style,
-                TextBoxStyle::with_height_mode(HeightMode::FitToText),
-            ))
+            Chain::new({
+                let line_height = text_style.line_height();
+                let text_bounds = Rectangle::new(
+                    display_area.top_left,
+                    Size::new(display_area.size.width, line_height),
+                );
+
+                HeaderText {
+                    text: title,
+                    is_cjk_font: is_cjk_font(&text_style),
+                    bounds: text_bounds,
+                    text_style: text_style.clone(),
+                }
+            })
             .append(
                 // Bottom border
                 Line::new(
@@ -533,4 +541,51 @@ where
 
         Ok(())
     }
+}
+
+struct HeaderText<'a, Color> {
+    text: &'a str,
+    is_cjk_font: bool,
+    bounds: Rectangle,
+    text_style: U8g2TextStyle<Color>,
+}
+
+impl<'a, Color> View for HeaderText<'a, Color> {
+    fn translate_impl(&mut self, by: Point) {
+        self.bounds.translate_mut(by);
+    }
+
+    fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+}
+
+impl<'a, Color: PixelColor> Drawable for HeaderText<'a, Color> {
+    type Color = Color;
+    type Output = ();
+
+    fn draw<D>(&self, display: &mut D) -> Result<(), D::Error>
+    where
+        D: DrawTarget<Color = Self::Color>,
+    {
+        let top_left = if self.is_cjk_font {
+            Point::new(self.bounds.top_left.x, self.bounds.top_left.y + 2)
+        } else {
+            Point::new(self.bounds.top_left.x, self.bounds.top_left.y + 1)
+        };
+
+        self.text_style
+            .draw_string(self.text, top_left, Baseline::Top, display)?;
+
+        Ok(())
+    }
+}
+
+fn is_cjk_font<C: PixelColor>(text_style: &U8g2TextStyle<C>) -> bool {
+    text_style
+        .measure_string("中", Point::zero(), Baseline::Top)
+        .bounding_box
+        .size
+        .width
+        > 0
 }
