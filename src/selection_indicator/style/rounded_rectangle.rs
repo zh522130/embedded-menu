@@ -32,15 +32,21 @@ pub struct RoundedRectangle {
     padding_bottom: i32,
 }
 
+impl Default for RoundedRectangle {
+    fn default() -> Self {
+        Self::new(2)
+    }
+}
+
 impl RoundedRectangle {
     /// Creates a new rounded rectangle indicator with the specified corner radius
     pub const fn new(corner_radius: u32) -> Self {
         Self {
             corner_radius,
             padding_left: 2,
-            padding_top: 0,
-            padding_right: 0,
-            padding_bottom: 0,
+            padding_top: 1,
+            padding_right: 2,
+            padding_bottom: -1,
         }
     }
 
