@@ -7,12 +7,11 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::{Point, Size},
     primitives::Rectangle,
-    text::{renderer::TextRenderer, Baseline},
+    text::{renderer::TextRenderer, Text},
+    Drawable,
 };
 use embedded_layout::prelude::*;
 use u8g2_fonts::U8g2TextStyle;
-
-use crate::is_cjk_font;
 
 /// Marker trait necessary to avoid a "conflicting implementations" error.
 pub trait Marker {}
@@ -46,7 +45,6 @@ pub trait MenuListItem<R>: Marker + View {
 pub struct MenuLine {
     bounds: Rectangle,
     value_width: u32,
-    is_cjk_font: bool,
 }
 
 impl MenuLine {
@@ -54,7 +52,6 @@ impl MenuLine {
         MenuLine {
             bounds: Rectangle::new(Point::zero(), Size::new(1, text_style.line_height() - 1)),
             value_width,
-            is_cjk_font: is_cjk_font(text_style),
         }
     }
 
@@ -62,7 +59,6 @@ impl MenuLine {
         MenuLine {
             bounds: Rectangle::new(Point::zero(), Size::new(1, 0)),
             value_width: 0,
-            is_cjk_font: false,
         }
     }
 
@@ -81,31 +77,21 @@ impl MenuLine {
         if self.bounds.intersection(&display_area).size.height == 0 {
             return Ok(());
         }
-        let mut text_bounds = if self.is_cjk_font {
-            Rectangle::new(
-                Point::new(self.bounds.top_left.x, self.bounds.top_left.y + 1),
-                Size::new(display_area.size.width - 1, self.bounds.size.height + 1),
-            )
-        } else {
-            Rectangle::new(
-                Point::new(self.bounds.top_left.x, self.bounds.top_left.y),
-                Size::new(display_area.size.width, self.bounds.size.height + 1),
-            )
-        };
+        let mut text_bounds = Rectangle::new(
+            self.bounds.top_left,
+            Size::new(display_area.size.width, self.bounds.size.height),
+        );
+
         // draw right value text
-        text_style.draw_string(
-            value_text,
-            Point::new(
-                text_bounds.bottom_right().unwrap_or_default().x - self.value_width as i32,
-                text_bounds.top_left.y,
-            ),
-            Baseline::Top,
-            display,
-        )?;
+        Text::new(value_text, Point::zero(), text_style)
+            .align_to(&text_bounds, horizontal::Right, vertical::Center)
+            .draw(display)?;
 
         // draw left title text
         text_bounds.size.width -= self.value_width;
-        text_style.draw_string(title, text_bounds.top_left, Baseline::Top, display)?;
+        Text::new(title, Point::zero(), text_style)
+            .align_to(&text_bounds, horizontal::Left, vertical::Center)
+            .draw(display)?;
 
         Ok(())
     }

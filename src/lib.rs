@@ -30,7 +30,7 @@ use embedded_graphics::{
     pixelcolor::{BinaryColor, PixelColor},
     prelude::{Dimensions, DrawTargetExt, Point, Size},
     primitives::{Line, Primitive, PrimitiveStyle, Rectangle},
-    text::{renderer::TextRenderer, Baseline},
+    text::{renderer::TextRenderer, Text},
     Drawable,
 };
 use embedded_layout::{layout::linear::LinearLayout, prelude::*, view_group::ViewGroup};
@@ -397,7 +397,6 @@ where
 
                 HeaderText {
                     text: title,
-                    is_cjk_font: is_cjk_font(&text_style),
                     bounds: text_bounds,
                     text_style: text_style.clone(),
                 }
@@ -545,7 +544,6 @@ where
 
 struct HeaderText<'a, Color> {
     text: &'a str,
-    is_cjk_font: bool,
     bounds: Rectangle,
     text_style: U8g2TextStyle<Color>,
 }
@@ -568,24 +566,11 @@ impl<'a, Color: PixelColor> Drawable for HeaderText<'a, Color> {
     where
         D: DrawTarget<Color = Self::Color>,
     {
-        let top_left = if self.is_cjk_font {
-            Point::new(self.bounds.top_left.x, self.bounds.top_left.y + 2)
-        } else {
-            Point::new(self.bounds.top_left.x, self.bounds.top_left.y + 1)
-        };
-
-        self.text_style
-            .draw_string(self.text, top_left, Baseline::Top, display)?;
+        let top_left = Point::new(self.bounds.top_left.x, self.bounds.top_left.y);
+        Text::new(self.text, top_left, &self.text_style)
+            .align_to(&self.bounds, horizontal::Left, vertical::Center)
+            .draw(display)?;
 
         Ok(())
     }
-}
-
-fn is_cjk_font<C: PixelColor>(text_style: &U8g2TextStyle<C>) -> bool {
-    text_style
-        .measure_string("中", Point::zero(), Baseline::Top)
-        .bounding_box
-        .size
-        .width
-        > 0
 }

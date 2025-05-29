@@ -5,9 +5,8 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 use embedded_menu::{
-    interaction::simulator::Simulator,
-    selection_indicator::style::{RoundedRectangle, Triangle},
-    Menu, MenuStyle, SelectValue,
+    interaction::simulator::Simulator, selection_indicator::style::RoundedRectangle, Menu,
+    MenuStyle, SelectValue,
 };
 
 use u8g2_fonts::{fonts::u8g2_font_wqy12_t_gb2312, U8g2TextStyle};
@@ -33,7 +32,7 @@ fn main() -> Result<(), core::convert::Infallible> {
             u8g2_font_wqy12_t_gb2312,
             BinaryColor::On,
         ))
-        .with_selection_indicator(RoundedRectangle::new(2).with_padding(2, 1, 2, -1))
+        .with_selection_indicator(RoundedRectangle::new(2))
         .with_animated_selection_indicator(10);
 
     let mut menu = Menu::with_style("菜单<Menu>", style)
