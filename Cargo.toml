@@ -17,7 +17,7 @@ embedded-layout = "0.4"
 embedded-menu-macros = { version = "0.4.0", path = "embedded-menu-macros" }
 
 embedded-graphics-simulator = { version = "0.7", optional = true }
-u8g2-fonts = { version = "0.6", features = ["embedded_graphics_textstyle"] }
+u8g2-fonts = { version = "0.7", features = ["embedded_graphics_textstyle"] }
 
 [features]
 simulator = ["embedded-graphics-simulator"]
